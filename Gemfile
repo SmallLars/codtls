@@ -1,0 +1,12 @@
+source 'https://rubygems.org'
+
+gem 'coap'
+gem 'openssl-ccm', '>=1.1.1'
+gem 'openssl-cmac', '>=2.0.0'
+gem 'sqlite3', '>=1.3.9'
+gem 'activerecord', '>=4.0.0'
+gem 'rake', '>=10.2.2'
+gem 'rdoc', '>=4.1.1'
+gem 'yard', '>=0.8.7.3'
+gem 'rubocop', '>=0.18.1'
+gem 'coveralls', '>=00.7.0'
