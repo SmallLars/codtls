@@ -8,20 +8,32 @@ class CoDTLSSendRecvTest < Minitest::Test
   IV = 'ABCD'
 
   def setup
-    create_sqlite_db(DB_FILE)
-    SQLite3::Database.new(DB_FILE)
-    ActiveRecord::Base.establish_connection(
-      adapter: 'sqlite3',
-      database: DB_FILE)
-    ActiveRecord::Base.connection
-    ActiveRecord::Migration.verbose = false
-    ActiveRecord::Migrator.migrate('db/migrate')
+    CoDTLS.connect_database(DB_FILE)
+    CoDTLS.setup_database
   end
 
   def teardown
-    #CoDTLS::Session.clear_all
+    # CoDTLS::Session.clear_all
     ActiveRecord::Base.remove_connection
     FileUtils.rm(DB_FILE)
+    GC.start
+  end
+
+  def info(numeric_address)
+    assert_equal numeric_address, '::1'
+    @listener_test = 1 if numeric_address == '::1'
+  end
+
+  def test_listener
+    @listener_test = 0
+    t = CoDTLS::SecureSocket.add_new_node_listener(self)
+    sleep(1)
+    d = UDPSocket.new(Socket::AF_INET6)
+    d.send("\x50\x03\x00", 0, '::1', 5684)
+    sleep(1)
+    assert_equal 1, @listener_test
+    d.close
+    t.exit
   end
 
   def test_send
@@ -75,13 +87,17 @@ class CoDTLSSendRecvTest < Minitest::Test
     s.send('Hallo Welt!', 0)
     h, d = CoDTLS::Record.parse(r.recvfrom(50)[0])
     check_header('Send 5', h, :appdata, 1, 1)
-    c = ccm.encrypt('Hallo Welt!', IV + "\x00\x01\x00\x00\x00\x00\x00\x01")
+    c = ccm.encrypt('Hallo Welt!',
+                    IV + "\x00\x01\x00\x00\x00\x00\x00\x01",
+                    "\x00\x00\x00\x00\x00\x01\x17\xFE\xFD\x00\x0B")
     assert_equal(c.unpack('H*')[0], d.unpack('H*')[0])
 
     s.send('Hallo Welt!', 0)
     h, d = CoDTLS::Record.parse(r.recvfrom(50)[0])
     check_header('Send 6', h, :appdata, 1, 2)
-    c = ccm.encrypt('Hallo Welt!', IV + "\x00\x01\x00\x00\x00\x00\x00\x02")
+    c = ccm.encrypt('Hallo Welt!',
+                    IV + "\x00\x01\x00\x00\x00\x00\x00\x02",
+                    "\x00\x00\x00\x00\x00\x02\x17\xFE\xFD\x00\x0B")
     assert_equal(c.unpack('H*')[0], d.unpack('H*')[0])
 
     session.enable_handshake
@@ -89,13 +105,17 @@ class CoDTLSSendRecvTest < Minitest::Test
     s.send('Hallo Welt!', 0)
     h, d = CoDTLS::Record.parse(r.recvfrom(50)[0])
     check_header('Send 7', h, :handshake, 1, 3)
-    c = ccm.encrypt('Hallo Welt!', IV + "\x00\x01\x00\x00\x00\x00\x00\x03")
+    c = ccm.encrypt('Hallo Welt!',
+                    IV + "\x00\x01\x00\x00\x00\x00\x00\x03",
+                    "\x00\x00\x00\x00\x00\x03\x16\xFE\xFD\x00\x0B")
     assert_equal(c.unpack('H*')[0], d.unpack('H*')[0])
 
     s.send('Hallo Welt!', 0)
     h, d = CoDTLS::Record.parse(r.recvfrom(50)[0])
     check_header('Send 8', h, :handshake, 1, 4)
-    c = ccm.encrypt('Hallo Welt!', IV + "\x00\x01\x00\x00\x00\x00\x00\x04")
+    c = ccm.encrypt('Hallo Welt!',
+                    IV + "\x00\x01\x00\x00\x00\x00\x00\x04",
+                    "\x00\x00\x00\x00\x00\x04\x16\xFE\xFD\x00\x0B")
     assert_equal(c.unpack('H*')[0], d.unpack('H*')[0])
 
     session.disable_handshake
@@ -103,7 +123,9 @@ class CoDTLSSendRecvTest < Minitest::Test
     s.send('Hallo Welt!', 0)
     h, d = CoDTLS::Record.parse(r.recvfrom(50)[0])
     check_header('Send 9', h, :appdata, 1, 5)
-    c = ccm.encrypt('Hallo Welt!', IV + "\x00\x01\x00\x00\x00\x00\x00\x05")
+    c = ccm.encrypt('Hallo Welt!',
+                    IV + "\x00\x01\x00\x00\x00\x00\x00\x05",
+                    "\x00\x00\x00\x00\x00\x05\x17\xFE\xFD\x00\x0B")
     assert_equal(c.unpack('H*')[0], d.unpack('H*')[0])
 
     s.close

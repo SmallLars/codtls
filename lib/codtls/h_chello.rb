@@ -32,12 +32,12 @@ module CoDTLS
 
       def cookie=(cookie)
         @cookie = cookie
-        unless @cookie.nil?
-          @cookie.force_encoding('ASCII-8BIT')
-          if @cookie.length > 255
-            fail HandshakeError, 'Maximum cookie length is 255'
-          end
-        end
+        return if @cookie.nil?
+
+        @cookie.force_encoding('ASCII-8BIT')
+        return unless @cookie.length > 255
+
+        fail HandshakeError, 'Maximum cookie length is 255'
       end
 
       def to_wire

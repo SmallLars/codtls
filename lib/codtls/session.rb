@@ -2,7 +2,6 @@ require 'active_record'
 require 'sqlite3'
 require 'pathname'
 
-require 'codtls/abstract_session'
 require 'codtls/models/codtls_connection'
 
 module CoDTLS
@@ -30,7 +29,7 @@ module CoDTLS
   # uint8_t  | key_block[40];     | empty
   # uint8_t  | key_block_new[40]; | empty
   # uint8_t  | handshake;         | 0
-  class Session < CoDTLS::AbstractSession
+  class Session
     @ip_list = []
     def self.ip_list
       @ip_list
@@ -47,6 +46,7 @@ module CoDTLS
     # @param ip [IP] IP for this Session
     # @param id [String] Session-Id for this Session
     def initialize(ip, id = nil)
+      CoDTLS.setup_database
       # logger = Logger.new(STDOUT)
       # logger.level = CoDTLS::LOG_LEVEL
       # logger.debug("Session wird erstellt")
@@ -66,7 +66,7 @@ module CoDTLS
           ActiveRecord::Base.connection_pool.with_connection do
             database_entry = CODTLSConnection.find_by_id(id)
           end
-          if (database_entry.nil?)
+          if database_entry.nil?
             create_standard_ip_entry
           else
             CoDTLS::Session.ip_list.push([ip, database_entry])
@@ -77,8 +77,12 @@ module CoDTLS
       else
         database_entry = database_entry[0][1]
       end
-      ObjectSpace.define_finalizer(self, proc { entry = get_database_entry(ip)
-                                                entry.save unless entry.nil? })
+      ObjectSpace.define_finalizer(self, proc do
+        entry = get_database_entry(ip)
+        ActiveRecord::Base.connection_pool.with_connection do
+          entry.save unless entry.nil?
+        end
+      end)
     end
 
     # Sets the ID of the current session.
@@ -147,7 +151,11 @@ module CoDTLS
     def seq=(num)
       database_entry = get_database_entry(@ip)
       database_entry.seq_num_r = num
-      database_entry.save
+      if (database_entry.seq_num_r % 50) == 0
+        ActiveRecord::Base.connection_pool.with_connection do
+          database_entry.save
+        end
+      end
       true
     end
 
@@ -159,7 +167,11 @@ module CoDTLS
     def seq
       database_entry = get_database_entry(@ip)
       database_entry.seq_num_w += 1
-      database_entry.save
+      if (database_entry.seq_num_w % 5) == 0
+        ActiveRecord::Base.connection_pool.with_connection do
+          database_entry.save
+        end
+      end
       database_entry.seq_num_w
     end
 
@@ -173,7 +185,9 @@ module CoDTLS
       end
       database_entry = get_database_entry(@ip)
       database_entry.key_block_new = keyBlock
-      database_entry.save
+      ActiveRecord::Base.connection_pool.with_connection do
+        database_entry.save
+      end
     end
 
     # Returns the active keyblock (key_block) for the specified IP.
@@ -189,7 +203,9 @@ module CoDTLS
     def enable_handshake
       database_entry = get_database_entry(@ip)
       database_entry.handshake = true
-      database_entry.save
+      ActiveRecord::Base.connection_pool.with_connection do
+        database_entry.save
+      end
       true
     end
 
@@ -197,7 +213,9 @@ module CoDTLS
     def disable_handshake
       database_entry = get_database_entry(@ip)
       database_entry.handshake = false
-      database_entry.save
+      ActiveRecord::Base.connection_pool.with_connection do
+        database_entry.save
+      end
       true
     end
 
@@ -215,35 +233,34 @@ module CoDTLS
       ActiveRecord::Base.connection_pool.with_connection do
         database_entry = CODTLSConnection.find_by_ip(@ip)
       end
-      if database_entry
-        ActiveRecord::Base.connection_pool.with_connection do
-          database_entry.destroy
-        end
-        entry = CoDTLS::Session.ip_list.select { |i| i[1] == database_entry }
-        return nil if entry.empty?
-        CoDTLS::Session.ip_list.delete(entry[0])
-        # database_entry.session_id = nil
-        # database_entry.epoch = 0
-        # database_entry.seq_num_r = 0
-        # database_entry.seq_num_w = 0
-        # database_entry.key_block = nil
-        # database_entry.key_block_new = nil
-        # database_entry.handshake = false
-        # database_entry.save
-        # database_entry = nil
+      return unless database_entry
+
+      ActiveRecord::Base.connection_pool.with_connection do
+        database_entry.destroy
       end
+      entry = CoDTLS::Session.ip_list.select { |i| i[1] == database_entry }
+      return nil if entry.empty?
+      CoDTLS::Session.ip_list.delete(entry[0])
+      # database_entry.session_id = nil
+      # database_entry.epoch = 0
+      # database_entry.seq_num_r = 0
+      # database_entry.seq_num_w = 0
+      # database_entry.key_block = nil
+      # database_entry.key_block_new = nil
+      # database_entry.handshake = false
+      # database_entry.save
+      # database_entry = nil
     end
 
     def get_database_entry(ip)
       # mutex lock
       entry = CoDTLS::Session.ip_list.select { |i| i[1].ip == ip }
       if entry.empty?
-        entry = create_standard_ip_entry
+        create_standard_ip_entry
         # return the new entry
       else
-        entry = entry[0][1]
+        entry[0][1]
       end
-      return entry
       # mutex unlock
     end
 
@@ -261,24 +278,20 @@ module CoDTLS
       ActiveRecord::Base.connection_pool.with_connection do
         if (database_entry = CODTLSConnection.find_by_ip(@ip)).nil?
           database_entry = CODTLSConnection.create(ip: @ip,
-                                                    epoch: 0,
-                                                    handshake: false,
-                                                    seq_num_w: 0,
-                                                    seq_num_r: 0
-                                                    )
+                                                   epoch: 0,
+                                                   handshake: false,
+                                                   seq_num_w: 0,
+                                                   seq_num_r: 0
+                                                   )
           database_entry.save
           CoDTLS::Session.ip_list.push([@ip, database_entry])
         end
       end
-      return database_entry
+      database_entry
     end
   end
 end
 
-def create_sqlite_db(dbname)
-  SQLite3::Database.new(dbname)
-end
-
 # refactoren: jedes mal, wenn auf den "database_entry" zugegriffen wird,
 # muss er aus der Tabelle geholt werden. Am besten noch den Zugriff auf
-# die Tabelle mit nem Mutex schützen
+# die Tabelle mit nem Mutex schuetzen

@@ -20,7 +20,9 @@ module CoDTLS
       if record.epoch > 0
         keyblock = session.key_block
         ccm = OpenSSL::CCM.new('AES', keyblock[0...16], 8)
-        record.to_wire + ccm.encrypt(mesg, record.nonce(keyblock[32...36]))
+        record.to_wire + ccm.encrypt(mesg,
+                                     record.nonce(keyblock[32...36]),
+                                     record.additional_data(mesg.length))
       else
         record.to_wire + mesg
       end

@@ -14,6 +14,13 @@ module CoDTLS
   # Tolles Modul
   module Handshake
     # TODO
+    def self.uuid_to_s(bin)
+      uuid = bin.unpack('H*')[0]
+      uuid.insert(20, '-').insert(16, '-')
+      uuid.insert(12, '-').insert(8, '-')
+    end
+
+    # TODO
     def self.handshake(numeric_address)
       logger = Logger.new(STDOUT)
       logger.level = CoDTLS::LOG_LEVEL
@@ -22,16 +29,24 @@ module CoDTLS
       session = Session.new(numeric_address)
       session.enable_handshake
 
-      logger.debug("Session created")
+      logger.debug('Session created')
 
       c = CoAP::Client.new(48).use_dtls
-      uuid = c.get(numeric_address, 5684, '/d/uuid').payload
+      begin
+        uuid = c.get(numeric_address, 5684, '/d/uuid').payload
+        logger.debug("UUID erhalten: #{uuid}")
+      rescue
+        uuid = ''
+        logger.debug('Konnte UUID nicht abrufen')
+      end
 
-      logger.debug("UUID erhalten: #{uuid}")
+      return [1, 'Gerät nicht erreichbar'] if uuid == ''
 
       psk = CoDTLS::PSKDB.get_psk(uuid)
       logger.debug("PSK: #{psk}")
-      psk.nil? ? 5 : 0
+      return [6, uuid_to_s(uuid)] if psk.nil?
+
+      [0, 'Handshake erfolgreich']
 =begin
       session = Session.new(numeric_address)
       session.enable_handshake

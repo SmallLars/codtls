@@ -3,7 +3,7 @@ ClassLength:
   Max: 500
 
 MethodLength:
-  Max: 64
+  Max: 128
 
 CyclomaticComplexity:
   Max: 32

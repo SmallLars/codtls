@@ -4,7 +4,7 @@ module CoDTLS
     class Type
       attr_reader :id
 
-      def self.parse(data)
+      def self.parse(*)
         fail HandshakeError, 'Not implemented'
       end
 

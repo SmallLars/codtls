@@ -4,15 +4,8 @@ require 'codtls/pskdb'
 # Testclass
 class CoDTLSPSKDBTest < Minitest::Test
   def setup
-    fail CoDTLS::SessionError 'testdatabase already exists' if File.exist?(
-                                                         'testdatabase.sqlite')
-    SQLite3::Database.new('testdatabase.sqlite')
-    ActiveRecord::Base.establish_connection(
-      adapter: 'sqlite3',
-      database: 'testdatabase.sqlite')
-    ActiveRecord::Base.connection
-    ActiveRecord::Migration.verbose = false # debug messages
-    ActiveRecord::Migrator.migrate 'db/migrate'
+    CoDTLS.connect_database('testdatabase.sqlite')
+    CoDTLS.setup_database
     @session = CoDTLS::Session.new('127.0.0.1')
   end
 

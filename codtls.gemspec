@@ -9,18 +9,21 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 2.1.0'
   s.date                  = '2014-05-13'
   s.authors               = ['Lars Schmertmann', 'Jens Trillmann']
-  s.email                 = ['SmallLars@t-online.de', 'jtrillma@informatik.uni-bremen.de']
+  s.email                 = ['SmallLars@t-online.de',
+                             'jtrillma@informatik.uni-bremen.de']
   s.summary               = 'DTLS with CoAP based handshake.'
-  s.description           = 'ALPHA - WORK IN PROGRESS - DTLS with stateless header compression and CoAP based handshake.'
+  s.description           = 'ALPHA - WORK IN PROGRESS - DTLS with stateless' \
+                            'header compression and CoAP based handshake.'
   s.homepage              = 'https://github.com/SmallLars/codtls'
   s.license               = 'MIT'
-  s.post_install_message  = "Thanks for installing!"
+  s.post_install_message  = 'Thanks for installing!'
 
   s.files       = Dir.glob('lib/*.rb') +
-                  Dir.glob("lib/codtls/*.rb") +
-                  Dir.glob("lib/codtls/models/*.rb") +
-                  Dir.glob("lib/generators/codtls/*.rb") +
-                  Dir.glob("lib/generators/codtls/templates/*.rb") +
+                  Dir.glob('db/migrate/*.rb') +
+                  Dir.glob('lib/codtls/*.rb') +
+                  Dir.glob('lib/codtls/models/*.rb') +
+                  Dir.glob('lib/generators/codtls/*.rb') +
+                  Dir.glob('lib/generators/codtls/templates/*.rb') +
                  ['Gemfile', 'Rakefile', '.rubocop.yml', '.yardopts']
   s.test_files = Dir.glob('test/test_*.rb')
 

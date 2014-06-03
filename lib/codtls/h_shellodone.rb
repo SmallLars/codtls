@@ -4,7 +4,7 @@ module CoDTLS
   module Handshake
     # Tolle Klasse
     class ServerHelloDone < Type
-      def self.parse(data)
+      def self.parse(*)
         ServerHelloDone.new
       end
 

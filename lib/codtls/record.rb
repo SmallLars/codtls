@@ -117,6 +117,16 @@ module CoDTLS
       nonce
     end
 
+    def additional_data(len)
+      num = @seq_num.class == Symbol ? 0 : @seq_num
+      additional_data = [num].pack('Q')[0...6].reverse
+      additional_data += (@type.class == Symbol ? TYPE[@type] + 20 : @type).chr
+      additional_data += 254.chr
+      additional_data += 253.chr
+      additional_data += [len].pack('n')
+      additional_data
+    end
+
     def to_wire
       @header = 0x00C0
       @header_add.clear
@@ -126,6 +136,8 @@ module CoDTLS
       append_epoch
       append_seq_num
       append_length
+
+      [@header].pack('n') + @header_add
     end
 
     private
@@ -145,7 +157,7 @@ module CoDTLS
       when Symbol then @header |= TYPE[@type] << 13
       when Integer
         @header |= TYPE[:bit8] << 13
-        @header_add += [type].pack('C')
+        @header_add += [@type].pack('C')
       end
     end
 
@@ -154,7 +166,7 @@ module CoDTLS
       when Symbol then @header |= VERSION[@version] << 11
       when Integer
         @header |= VERSION[:bit16] << 11
-        @header_add += [version].pack('n')
+        @header_add += [@version].pack('n')
       end
     end
 
@@ -195,8 +207,6 @@ module CoDTLS
         @header_add += num.pack('C*')
         @header |= num.length
       end
-
-      [@header].pack('n') + @header_add
     end
   end
 end

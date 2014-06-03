@@ -34,7 +34,9 @@ module CoDTLS
         end
 
         ccm = OpenSSL::CCM.new('AES', keyblock[16...32], 8)
-        data = ccm.decrypt(data, record.nonce(keyblock[36...40]))
+        data = ccm.decrypt(data,
+                           record.nonce(keyblock[36...40]),
+                           record.additional_data(data.length - 8))
         if data.empty?
           send_alert(sender_inet_addr, :fatal, :bad_record_mac)
           return ['', sender_inet_addr]

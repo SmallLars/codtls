@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/SmallLars/codtls.png?branch=master)](https://travis-ci.org/SmallLars/codtls)
 [![Coverage Status](https://coveralls.io/repos/SmallLars/codtls/badge.png?branch=master)](https://coveralls.io/r/SmallLars/codtls)
 [![Code Climate](https://codeclimate.com/github/SmallLars/codtls.png)](https://codeclimate.com/github/SmallLars/codtls)
-[![Inline docs](http://inch-pages.github.io/github/smalllars/codtls.png)](http://inch-pages.github.io/github/smalllars/codtls)
+[![Inline docs](http://inch-ci.org/github/SmallLars/codtls.png?branch=master)](http://inch-ci.org/github/SmallLars/codtls)
 
 
 # Gem CoDTLS

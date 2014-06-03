@@ -1,22 +1,13 @@
 require 'test_helper'
-require 'codtls/abstract_session'
 require 'codtls/session'
 
 # Testclass
 class CoDTLSSessionTest < Minitest::Test
   def setup
-    fail CoDTLS::SessionError 'testdatabase already exists' if File.exist?(
-                                                         'testdatabase.sqlite')
-    SQLite3::Database.new('testdatabase.sqlite')
-    ActiveRecord::Base.establish_connection(
-      adapter: 'sqlite3',
-      database: 'testdatabase.sqlite')
-    ActiveRecord::Base.connection
-    ActiveRecord::Migration.verbose = false # debug messages
-    ActiveRecord::Migrator.migrate 'db/migrate'
+    CoDTLS.connect_database('testdatabase.sqlite')
+    CoDTLS.setup_database
     CoDTLS::Session.clear_all # only needed here, it is not normal that the
-                              # database gets changed while the program is
-                              # still running
+    # database gets changed while the program is still running
     @session = CoDTLS::Session.new('127.0.0.1')
   end
 

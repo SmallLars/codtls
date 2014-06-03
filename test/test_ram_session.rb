@@ -1,5 +1,4 @@
 require 'test_helper'
-require 'codtls/abstract_session'
 require 'codtls/ram_session'
 
 # Testclass

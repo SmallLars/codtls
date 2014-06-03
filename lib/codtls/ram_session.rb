@@ -1,5 +1,3 @@
-require 'codtls/abstract_session'
-
 module CoDTLS
   # Error class for wrong data inputs (for exampe keyblock)
   class SessionError < StandardError
@@ -16,7 +14,7 @@ module CoDTLS
   # uint8_t  | key_block[40];     | empty
   # uint8_t  | key_block_new[40]; | empty
   # uint8_t  | handshake;         | 0
-  class RAMSession < CoDTLS::AbstractSession
+  class RAMSession
     @connections = []
     # Constructor to create a new session for the given ip. When only ip is
     # given, its the value for searching in database. When its not found, a

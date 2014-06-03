@@ -15,6 +15,42 @@ module CoDTLS
   class SecureSocketError < StandardError
   end
 
+  # creates the database in the current folder
+  def self.create_database(filename = 'codtls.sqlite')
+    fail 'Database already exists' if File.exist?(filename)
+    SQLite3::Database.new(filename)
+    true
+  end
+
+  def self.connect_database(filename = 'codtls.sqlite')
+    CoDTLS.create_database(filename) unless File.exist?(filename)
+    ActiveRecord::Base.establish_connection(adapter: 'sqlite3',
+                                            database: filename)
+    true
+  end
+
+  def self.migrate_database
+    CoDTLS.connect_database if ActiveRecord::Base.connected?.nil?
+    ActiveRecord::Base.connection_pool.with_connection do
+      tables = ActiveRecord::Base.connection.tables
+      unless tables.include?('codtls_devices') &&
+             tables.include?('codtls_connections')
+        ActiveRecord::Migration.verbose = false # debug messages
+        if Gem.loaded_specs['codtls'].nil?
+          gem_path = 'db/migrate'
+        else
+          gem_path = "#{Gem.loaded_specs['codtls'].full_gem_path}/db/migrate"
+        end
+        ActiveRecord::Migrator.migrate gem_path
+      end
+    end
+    true
+  end
+
+  def self.setup_database
+    CoDTLS.migrate_database
+  end
+
   # Secure UDP-Socket based on a CoAP using handshake
   #
   # Usage of SecureSocket ist the same as of UDPSocket.
@@ -24,38 +60,7 @@ module CoDTLS
   #
   # add_new_node_listener(listener) to enable autohandshake
   # when a new node was found.
-  class SecureSocket
-    # Creates a new CoDTLS Socket. Behavior is like UDPSocket.
-    #
-    # @param address_family [Symbol] the address family of the socket,
-    #        `Socket::AF_INET` or `Socket::AF_INET6`
-    # @return [Object] the new CoDTLS socket object
-    def initialize(address_family = nil)
-      if address_family.nil?
-        @socket = UDPSocket.new
-      else
-        @socket = UDPSocket.new(address_family)
-      end
-    end
-
-    # Binds codtlssocket to host:port.
-    #
-    # @param host [IP] the address of the local machine
-    # @param port [Number] the port of the local machine
-    # @return [Number] 0 if bind succeed
-    def bind(host, port)
-      @socket.bind(host, port)
-    end
-
-    # Connects codtlssocket to host:port.
-    #
-    # @param host [IP] the address of the remote machine
-    # @param port [Number] the port of the remote machine
-    # @return [Number] 0 if bind succeed
-    def connect(host, port)
-      @socket.connect(host, port)
-    end
-
+  class SecureSocket < UDPSocket
     # Recieves message via secure UDP-Socket. Blocks until data is recieved.
     #
     # @param maxlen [Number] the number of bytes to receive from the socket
@@ -64,9 +69,9 @@ module CoDTLS
     #         mesg is empty, if recieved data is corrupt
     def recvfrom(maxlen, flags = nil)
       if flags.nil?
-        mesg = @socket.recvfrom(maxlen + 23)
+        mesg = super(maxlen + 23)
       else
-        mesg = @socket.recvfrom(maxlen + 23, flags)
+        mesg = super(maxlen + 23, flags)
       end
       CoDTLS::RecordLayer.decrypt(mesg, maxlen)
     end
@@ -79,9 +84,9 @@ module CoDTLS
     #         message is empty, if data there is no data or data is corrupt
     def recvfrom_nonblock(maxlen, flags = nil)
       if flags.nil?
-        mesg = @socket.recvfrom_nonblock(maxlen + 23)
+        mesg = super(maxlen + 23)
       else
-        mesg = @socket.recvfrom_nonblock(maxlen + 23, flags)
+        mesg = super(maxlen + 23, flags)
       end
       CoDTLS::RecordLayer.decrypt(mesg, maxlen)
     end
@@ -95,9 +100,8 @@ module CoDTLS
     #
     # @param mesg [String] the message to send
     # @param flags [Number] should be a bitwise OR of Socket::MSG_* constants
-    # @param host_or_sockaddr_to [String] the hostname or sockaddr of the
-    #        remote machine
-    # @param port [Number] the port of the remote machine
+    # @param argv [String] the hostname or sockaddr of the remote machine or
+    #             [Number, Number] Host, Port of the remote machine
     # @return [Number] the number of bytes sent.
     #         If mesg.length > 0 && return value == 0 an error happend
     def send(mesg, flags, *argv)
@@ -111,7 +115,7 @@ module CoDTLS
                     when 0
                       CoDTLS::RecordLayer.encrypt(
                         mesg,
-                        @socket.peeraddr(:numeric)[3])
+                        peeraddr(:numeric)[3])
                     when 1
                       CoDTLS::RecordLayer.encrypt(
                         mesg,
@@ -121,13 +125,8 @@ module CoDTLS
                         mesg,
                         IPSocket.getaddress(argv[0]))
       end
-      @socket.send(secure_mesg, flags, *argv)
+      super(secure_mesg, flags, *argv)
       mesg.length
-    end
-
-    # Disallows further read and write using shutdown system call.
-    def close
-      @socket.close
     end
 
     # Sets pre-shared key for the device with the specified uuid.
@@ -141,7 +140,7 @@ module CoDTLS
 
     # Returns all known devices as an Array.
     #
-    # @return [Array] of {uuid: A, psk: B, desc: C}
+    # @return [Array] of [id, uuid, psk, desc]
     def self.psks
       CoDTLS::PSKDB.all_registered
       # [{ uuid: ['a9d984d1fe2b4c06afe8da98d8924005'].pack('H*'),
@@ -159,9 +158,8 @@ module CoDTLS
     end
 
     # Starts a listening thread on port 5684. If HelloRequest is recieved,
-    # listener.info(numeric_address, code) is called, after a handshake.
-    # numeric_address contains the ip of the remote and code == 0 if
-    # handshake succeed. Code == 1 if handshake failed or PSK is missing.
+    # listener.info(numeric_address) is called.
+    # numeric_address contains the ip of the remote.
     def self.add_new_node_listener(listener)
       Thread.new do
         s = UDPSocket.new(Socket::AF_INET6)
@@ -174,10 +172,8 @@ module CoDTLS
           logger.debug(packet.inspect)
 
           if packet[0] == "\x50\x03\x00"
-            logger.debug("HelloRequest erhalten")
-            numeric_address = packet[1][3]
-            listener.info(numeric_address,
-                          CoDTLS::Handshake.handshake(numeric_address))
+            logger.debug('HelloRequest erhalten')
+            listener.info(packet[1][3])
           end
         end
       end

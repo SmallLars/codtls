@@ -7,8 +7,8 @@ module CoDTLS
       ECCURVETYPE = { explicit_prime: "\x01",
                       explicit_char2: "\x02",
                       named_curve:    "\x03"
-                      # reserved(248..255)
-                      # max = 255
+        # reserved(248..255)
+        # max = 255
       }
       NAMEDCURVE = { sect163k1: "\x00\x01",
                      sect163r1: "\x00\x02",
@@ -38,7 +38,7 @@ module CoDTLS
                      # reserved: \xfe\x00..\xfe\xff
                      arbitrary_explicit_prime_curves: "\xff\x01",
                      arbitrary_explicit_char2_curves: "\xff\x02"
-                     # max: \xffff
+        # max: \xffff
       }
       POINTTYPE = { compressed: "\x02",
                     uncompressed: "\x04",

@@ -58,10 +58,14 @@ module CoDTLS
 
     # Returns an array of all registered UUIDs.
     #
-    # @return [Array] of {uuid: A, psk: B, desc: C}
+    # @return [Array] of [id, uuid, psk, desc]
     def self.all_registered
       entries = @psks
-      entries.map { |i| [i.uuid, i.psk_new.nil? ? i.psk : i.psk_new, i.desc] }
+      entries.map do |i| [i.id,
+                          i.uuid,
+                          i.psk_new.nil? ? i.psk : i.psk_new,
+                          i.desc]
+      end
     end
 
     # Removes the all entrys from database in TABLE 2.
