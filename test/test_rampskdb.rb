@@ -2,7 +2,7 @@ require 'test_helper'
 require 'codtls/rampskdb'
 
 # Testclass
-class CoDTLSRAMPSKDBTest < Minitest::Test
+class CoDTLSRAMPSKDBTest < Minitest::Unit::TestCase
   def setup
   end
 

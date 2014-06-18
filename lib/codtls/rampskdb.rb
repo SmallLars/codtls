@@ -1,5 +1,3 @@
-require 'active_record'
-require 'sqlite3'
 require 'pathname'
 
 module CoDTLS

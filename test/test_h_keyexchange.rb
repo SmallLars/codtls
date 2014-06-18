@@ -2,7 +2,7 @@ require 'test_helper'
 require 'codtls'
 
 # Testclass
-class KeyExchangeTest < Minitest::Test
+class KeyExchangeTest < Minitest::Unit::TestCase
   PSK_HINT = 'ABCDEFGHIJKLMNOP'
   CURVE = CoDTLS::Handshake::KeyExchange::ECCURVETYPE[:named_curve] +
           CoDTLS::Handshake::KeyExchange::NAMEDCURVE[:secp256r1]

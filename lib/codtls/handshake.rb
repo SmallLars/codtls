@@ -3,7 +3,7 @@ require 'codtls/ecc'
 require 'openssl/cmac'
 require 'openssl/ccm'
 require 'codtls/prf'
-require 'codtls/pskdb'
+require 'codtls/redis_pskdb'
 require 'coap'
 
 module CoDTLS
@@ -26,7 +26,7 @@ module CoDTLS
       logger.level = CoDTLS::LOG_LEVEL
       logger.debug("Handshake gestarted #{numeric_address}")
 
-      session = Session.new(numeric_address)
+      session = RedisSession.new(numeric_address)
       session.enable_handshake
 
       logger.debug('Session created')
@@ -42,7 +42,7 @@ module CoDTLS
 
       return [1, 'Gerät nicht erreichbar'] if uuid == ''
 
-      psk = CoDTLS::PSKDB.get_psk(uuid)
+      psk = CoDTLS::RedisPSKDB.get_psk(uuid)
       logger.debug("PSK: #{psk}")
       return [6, uuid_to_s(uuid)] if psk.nil?
 
@@ -140,7 +140,7 @@ module CoDTLS
       end
 
       def choose_psk(psk_hint)
-        @psk = CoDTLS::PSKDB.get_psk(psk_hint)
+        @psk = CoDTLS::RedisPSKDB.get_psk(psk_hint)
         @psk.nil? ? false : true
       end
 

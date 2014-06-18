@@ -1,54 +1,42 @@
 require 'socket'
 require 'logger'
+require 'redis'
 
 require 'codtls/encrypt'
 require 'codtls/decrypt'
 require 'codtls/handshake'
 require 'codtls/record'
-require 'codtls/session'
+# require 'codtls/session'
+require 'codtls/redis_session'
+require 'codtls/redis_pskdb'
 
 # laber
 module CoDTLS
   LOG_LEVEL = Logger::ERROR # UNKNOWN,FATAL,ERROR,WARN,INFO,DEBUG
+  @redis_connection_object = nil
+  @redis_host = '127.0.0.1'
+  @redis_port = 6379
+  @redis_db = 0
 
   # TODO
   class SecureSocketError < StandardError
   end
 
-  # creates the database in the current folder
-  def self.create_database(filename = 'codtls.sqlite')
-    fail 'Database already exists' if File.exist?(filename)
-    SQLite3::Database.new(filename)
-    true
+  def self.redis_connection
+    return @redis_connection_object unless @redis_connection_object.nil?
+    @redis_connection_object = Redis.new(host: @redis_host,
+                                         port: @redis_port,
+                                         db: @redis_db)
   end
 
-  def self.connect_database(filename = 'codtls.sqlite')
-    CoDTLS.create_database(filename) unless File.exist?(filename)
-    ActiveRecord::Base.establish_connection(adapter: 'sqlite3',
-                                            database: filename)
-    true
+  def self.set_redis_connection_data(host, port, db)
+    @redis_host = host
+    @redis_port = port
+    @redis_db = db
   end
 
-  def self.migrate_database
-    CoDTLS.connect_database if ActiveRecord::Base.connected?.nil?
-    ActiveRecord::Base.connection_pool.with_connection do
-      tables = ActiveRecord::Base.connection.tables
-      unless tables.include?('codtls_devices') &&
-             tables.include?('codtls_connections')
-        ActiveRecord::Migration.verbose = false # debug messages
-        if Gem.loaded_specs['codtls'].nil?
-          gem_path = 'db/migrate'
-        else
-          gem_path = "#{Gem.loaded_specs['codtls'].full_gem_path}/db/migrate"
-        end
-        ActiveRecord::Migrator.migrate gem_path
-      end
-    end
-    true
-  end
-
-  def self.setup_database
-    CoDTLS.migrate_database
+  def self.save_redis
+    CoDTLS.redis_connection.save
   end
 
   # Secure UDP-Socket based on a CoAP using handshake
@@ -135,14 +123,14 @@ module CoDTLS
     # @param psk [String] the 16 byte long pre-shared key of the device
     # @param desc [String] Optional Description of the device
     def self.add_psk(uuid, psk, desc = '')
-      CoDTLS::PSKDB.set_psk(uuid, psk, desc)
+      CoDTLS::RedisPSKDB.set_psk(uuid, psk, desc)
     end
 
     # Returns all known devices as an Array.
     #
     # @return [Array] of [id, uuid, psk, desc]
     def self.psks
-      CoDTLS::PSKDB.all_registered
+      CoDTLS::RedisPSKDB.all_registered
       # [{ uuid: ['a9d984d1fe2b4c06afe8da98d8924005'].pack('H*'),
       #    psk: 'ABCDEFGHIJKLMNOP', desc: 'Temperaturgeraet 1' },
       #  { uuid: ['9425f01d39034295ad9447161e13251b'].pack('H*'),
@@ -154,7 +142,7 @@ module CoDTLS
     # @param uuid [Binary] the UUID of the device to delete
     # @return [Bool] true if uuid was found and deleted, else false
     def self.del_psk(uuid)
-      CoDTLS::PSKDB.del_psk!(uuid)
+      CoDTLS::RedisPSKDB.del_psk!(uuid)
     end
 
     # Starts a listening thread on port 5684. If HelloRequest is recieved,

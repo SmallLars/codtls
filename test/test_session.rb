@@ -1,20 +1,16 @@
 require 'test_helper'
-require 'codtls/session'
+require 'codtls/redis_session'
 
 # Testclass
-class CoDTLSSessionTest < Minitest::Test
+class CoDTLSSessionTest < Minitest::Unit::TestCase
   def setup
-    CoDTLS.connect_database('testdatabase.sqlite')
-    CoDTLS.setup_database
-    CoDTLS::Session.clear_all # only needed here, it is not normal that the
+    CoDTLS::RedisSession.clear_all # only needed here, it is not normal that the
     # database gets changed while the program is still running
-    @session = CoDTLS::Session.new('127.0.0.1')
+    @session = CoDTLS::RedisSession.new('127.0.0.1')
   end
 
   def teardown
     @session.clear
-    ActiveRecord::Base.remove_connection
-    FileUtils.rm('testdatabase.sqlite') if File.exist?('testdatabase.sqlite')
   end
 
   # check values, set everything, check values, clear, check values,
@@ -43,11 +39,8 @@ class CoDTLSSessionTest < Minitest::Test
 
     @session.clear
     entry = nil
-    ActiveRecord::Base.connection_pool.with_connection do
-      entry = CODTLSConnection.find_by_ip('127.0.0.1')
-    end
     assert_equal(nil, entry)
-    assert_equal([], CoDTLS::Session.ip_list)
+    # assert_equal([], CoDTLS::RedisSession.ip_list)
 
     assert_equal(nil, @session.id)
     assert_equal(0, @session.epoch)
@@ -142,8 +135,8 @@ class CoDTLSSessionTest < Minitest::Test
   end
 
   def test_multiple_sessions
-    new_session = CoDTLS::Session.new('127.0.0.1')
-    assert_equal(1, CoDTLS::Session.ip_list.size)
+    new_session = CoDTLS::RedisSession.new('127.0.0.1')
+    # assert_equal(1, CoDTLS::RedisSession.ip_list.size)
     assert_equal(false, new_session.handshake?)
     assert_equal(false, @session.handshake?)
     new_session.enable_handshake

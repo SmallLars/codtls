@@ -20,7 +20,7 @@ module CoDTLS
         return ['', sender_inet_addr]
       end
 
-      session = Session.new(sender_inet_addr[3])
+      session = RedisSession.new(sender_inet_addr[3])
       unless session.check_seq(record.seq_num)
         send_alert(sender_inet_addr, :fatal, :decode_error)
         return ['', sender_inet_addr]

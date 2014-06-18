@@ -2,20 +2,15 @@ require 'test_helper'
 require 'codtls'
 
 # Testclass
-class CoDTLSSendRecvTest < Minitest::Test
+class CoDTLSSendRecvTest < Minitest::Unit::TestCase
   DB_FILE = 'sendrecvtest.sqlite'
   KEY = 'ABCDEFGHIJKLMNOP'
   IV = 'ABCD'
 
   def setup
-    CoDTLS.connect_database(DB_FILE)
-    CoDTLS.setup_database
   end
 
   def teardown
-    # CoDTLS::Session.clear_all
-    ActiveRecord::Base.remove_connection
-    FileUtils.rm(DB_FILE)
     GC.start
   end
 
@@ -38,7 +33,7 @@ class CoDTLSSendRecvTest < Minitest::Test
 
   def test_send
     # Setup - begin
-    session = CoDTLS::Session.new('127.0.0.1')
+    session = CoDTLS::RedisSession.new('127.0.0.1')
 
     r = UDPSocket.new
     r.bind('127.0.0.1', 5684)

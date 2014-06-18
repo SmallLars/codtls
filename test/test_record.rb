@@ -2,7 +2,7 @@ require 'test_helper'
 require 'codtls'
 
 # Testclass
-class RecordTest < Minitest::Test
+class RecordTest < Minitest::Unit::TestCase
   # [fails?, input, header, headeradd]
   V = [[
     # Type

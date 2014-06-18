@@ -7,7 +7,7 @@ module CoDTLS
   module RecordLayer
     # TODO
     def self.encrypt(mesg, ip, type = :default)
-      session = Session.new(ip)
+      session = RedisSession.new(ip)
       type = session.handshake? ? :handshake : :appdata if type == :default
 
       # WARNING: !!! -> disabled for testing purpose

@@ -2,7 +2,7 @@ require 'test_helper'
 require 'codtls/ram_session'
 
 # Testclass
-class CoDTLSRAMSessionTest < Minitest::Test
+class CoDTLSRAMSessionTest < Minitest::Unit::TestCase
   def setup
     @session = CoDTLS::RAMSession.new('127.0.0.1')
   end

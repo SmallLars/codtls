@@ -2,7 +2,7 @@ require 'test_helper'
 require 'codtls'
 
 # Testclass
-class ClientHelloTest < Minitest::Test
+class ClientHelloTest < Minitest::Unit::TestCase
   RANDOM = 'ABCDEFGHIJKLMNOPQRSTUVWXYZAB'
   COOKIE = 'ABCDEFGH'
   APPENDIX = "\x00\x02\xFF\x01\x01\x00\x00\x0E\x00\x0A\x00" \

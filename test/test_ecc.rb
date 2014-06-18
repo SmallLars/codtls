@@ -3,7 +3,7 @@ require 'codtls/ecc'
 
 # Testclass with Test Vectors from
 # http://www.nsa.gov/ia/_files/nist-routines.pdf
-class ECCTest < Minitest::Test
+class ECCTest < Minitest::Unit::TestCase
   BP_X = ['6b17d1f2e12c4247f8bce6e563a440f2' \
           '77037d812deb33a0f4a13945d898c296'].pack('H*')
   BP_Y = ['4fe342e2fe1a7f9b8ee7eb4a7c0f9e16' \

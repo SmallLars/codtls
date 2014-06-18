@@ -2,7 +2,7 @@ require 'test_helper'
 require 'codtls'
 
 # Testclass
-class ContentTest < Minitest::Test
+class ContentTest < Minitest::Unit::TestCase
   COOKIE = 'ABCDEFGH'
 
   def test_content_get

@@ -30,8 +30,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'coap'
   s.add_runtime_dependency 'openssl-ccm', '~> 1.1', '>= 1.1.1'
   s.add_runtime_dependency 'openssl-cmac', '~> 2.0', '>= 2.0.0'
-  s.add_runtime_dependency 'sqlite3', '~> 1.3', '>= 1.3.9'
-  s.add_runtime_dependency 'activerecord', '~> 4.0', '>= 4.0.0'
+  s.add_runtime_dependency 'redis', '~>3.1.0', '>= 3.1.0'
 
   s.add_development_dependency 'rake', '~> 10.2', '>= 10.2.2'
   s.add_development_dependency 'rdoc', '~> 4.1', '>= 4.1.1'

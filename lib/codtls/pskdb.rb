@@ -1,7 +1,4 @@
-require 'active_record'
-require 'sqlite3'
 require 'pathname'
-require 'codtls/models/codtls_device'
 
 module CoDTLS
   # A Class for managing PSKs per IP. The class has no initializer, because

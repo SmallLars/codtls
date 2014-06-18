@@ -2,16 +2,13 @@ require 'test_helper'
 require 'codtls'
 
 # Testclass
-class CoDTLSTest < Minitest::Test
+class CoDTLSTest < Minitest::Unit::TestCase
   def setup
-    CoDTLS.connect_database('testdatabase.sqlite')
-    CoDTLS.setup_database
-    @session = CoDTLS::Session.new('127.0.0.1')
+    @session = CoDTLS::RedisSession.new('127.0.0.1')
   end
 
   def teardown
-    ActiveRecord::Base.remove_connection
-    FileUtils.rm('testdatabase.sqlite') if File.exist?('testdatabase.sqlite')
+    CoDTLS::RedisPSKDB.clear_all
   end
 
   def test_psk
@@ -20,28 +17,30 @@ class CoDTLSTest < Minitest::Test
     CoDTLS::SecureSocket.add_psk(
       ['a9d984d1fe2b4c06afe8da98d8924005'].pack('H*'),
       'ABCDEFGHIJKLMNOP', 'Temperaturgerät 1')
-    assert_equal [[['a9d984d1fe2b4c06afe8da98d8924005'].pack('H*'),
+    assert_equal [[0, ['a9d984d1fe2b4c06afe8da98d8924005'].pack('H*'),
                    'ABCDEFGHIJKLMNOP', 'Temperaturgerät 1']],
-                 CoDTLS::SecureSocket.psks.map { |x| x[1..3] }
+                 CoDTLS::SecureSocket.psks
 
-    CoDTLS::SecureSocket.del_psk(1)
+    CoDTLS::SecureSocket.del_psk(0)
     assert_equal [], CoDTLS::SecureSocket.psks
 
     CoDTLS::SecureSocket.add_psk(
       ['a9d984d1fe2b4c06afe8da98d8924005'].pack('H*'),
       'ABCDEFGHIJKLMNOP', 'Temperaturgerät 1')
+    assert_equal [[1, ['a9d984d1fe2b4c06afe8da98d8924005'].pack('H*'),
+                   'ABCDEFGHIJKLMNOP', 'Temperaturgerät 1']],
+                 CoDTLS::SecureSocket.psks
     CoDTLS::SecureSocket.add_psk(
       ['9425f01d39034295ad9447161e13251b'].pack('H*'),
       'abcdefghijklmnop', 'Rolladen Nummer 5')
-    assert_equal [[['a9d984d1fe2b4c06afe8da98d8924005'].pack('H*'),
-                   'ABCDEFGHIJKLMNOP', 'Temperaturgerät 1'],
-                  [['9425f01d39034295ad9447161e13251b'].pack('H*'),
-                   'abcdefghijklmnop', 'Rolladen Nummer 5']],
-                 CoDTLS::SecureSocket.psks.map { |x| x[1..3] }
+    assert_equal true, CoDTLS::SecureSocket.psks.include?([1, ['a9d984d1fe2b4c06afe8da98d8924005'].pack('H*'),
+                   'ABCDEFGHIJKLMNOP', 'Temperaturgerät 1'])
+    assert_equal true, CoDTLS::SecureSocket.psks.include?([2, ['9425f01d39034295ad9447161e13251b'].pack('H*'),
+                   'abcdefghijklmnop', 'Rolladen Nummer 5'])
 
-    CoDTLS::SecureSocket.del_psk(2)
-    assert_equal [[['9425f01d39034295ad9447161e13251b'].pack('H*'),
+    CoDTLS::SecureSocket.del_psk(1)
+    assert_equal [[2, ['9425f01d39034295ad9447161e13251b'].pack('H*'),
                    'abcdefghijklmnop', 'Rolladen Nummer 5']],
-                 CoDTLS::SecureSocket.psks.map { |x| x[1..3] }
+                 CoDTLS::SecureSocket.psks
   end
 end
