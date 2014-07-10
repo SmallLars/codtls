@@ -27,7 +27,7 @@ Gem::Specification.new do |s|
                  ['Gemfile', 'Rakefile', '.rubocop.yml', '.yardopts']
   s.test_files = Dir.glob('test/test_*.rb')
 
-  s.add_runtime_dependency 'coap'
+  s.add_runtime_dependency 'coap', '~> 0.0', '>= 0.0.16'
   s.add_runtime_dependency 'openssl-ccm', '~> 1.1', '>= 1.1.1'
   s.add_runtime_dependency 'openssl-cmac', '~> 2.0', '>= 2.0.0'
   s.add_runtime_dependency 'redis', '~>3.1.0', '>= 3.1.0'
